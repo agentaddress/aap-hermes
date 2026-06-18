@@ -1,0 +1,43 @@
+# aap-hermes is a Hermes Agent plugin, not a normal pip-installable package.
+# It's distributed by `git clone`-ing this repo directly into
+# ~/.hermes/plugins/aap-hermes/ — the repo root IS the plugin root, with
+# __init__.py + plugin.yaml + sibling modules in a flat layout (per
+# https://github.com/NousResearch/hermes-agent/blob/main/website/docs/guides/build-a-hermes-plugin.md).
+#
+# This file exists only for dev tooling (pytest, ruff) and project metadata.
+# To set up a development environment: pip install -r requirements-dev.txt
+[project]
+name = "aap-hermes"
+version = "0.16.1"
+description = "AAP (Agent Address Protocol) channel adapter for Hermes Agent."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Chris Evans" }]
+keywords = ["aap", "hermes", "agent", "plugin"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://agentaddressprotocol.org"
+Source = "https://github.com/agentaddress/aap-hermes"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+# importlib mode so pytest doesn't try to walk up from tests/ into the
+# plugin's root __init__.py — that __init__.py uses relative imports
+# and only makes sense when loaded as the `aap_hermes` package (which
+# tests/conftest.py does explicitly via importlib).
+addopts = "-ra --import-mode=importlib"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

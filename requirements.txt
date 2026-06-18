@@ -1,0 +1,9 @@
+# Runtime deps for production install into Hermes's venv.
+# See INSTALL.md.
+
+httpx>=0.27
+pydantic-settings>=2.4
+cryptography>=42
+rfc8785>=0.1
+jsonschema>=4.20
+./vendor/aap-0.9.1-py3-none-any.whl

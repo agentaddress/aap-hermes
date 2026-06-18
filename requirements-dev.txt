@@ -1,0 +1,21 @@
+# Dev / test environment.
+#
+# Production install (into Hermes's venv) is documented in INSTALL.md and uses
+# this same file MINUS the dev tools (pytest, respx, ruff). To set up locally:
+#   python -m venv .venv
+#   .venv/bin/pip install -r requirements-dev.txt
+#   .venv/bin/pytest
+
+# Runtime deps — also needed in Hermes's venv at deploy time
+httpx>=0.27
+pydantic-settings>=2.4
+cryptography>=42
+rfc8785>=0.1
+jsonschema>=4.20
+./vendor/aap-0.9.1-py3-none-any.whl
+
+# Dev / test only
+pytest>=8
+pytest-asyncio>=0.24
+respx>=0.21
+ruff>=0.5

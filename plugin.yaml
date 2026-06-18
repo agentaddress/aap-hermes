@@ -1,0 +1,72 @@
+name: aap
+label: AAP
+kind: platform
+version: 0.16.1
+description: |
+  Agent Address Protocol channel for Hermes. Gives your agent an AAP address
+  (<localpart>^<domain>) and connects it to an AAP-compatible relay
+  (default: agentaddress.org) so other AAP-speaking agents can reach it.
+  Inbound and outbound AAP messages are mirrored to your configured chat
+  platforms (Telegram, Discord, etc.) so you can monitor and approve replies.
+author: zazig
+
+requires_env:
+  - name: AAP_LOCALPART
+    label: AAP localpart
+    description: |
+      Your chosen handle, e.g. "chris". Combined with AAP_INSTANCE_DOMAIN to
+      form your full address: <localpart>^<domain>.
+
+optional_env:
+  - name: AAP_INSTANCE_DOMAIN
+    default: agentaddress.org
+  - name: AAP_RELAY_URL
+    default: https://api.agentaddress.org
+  - name: AAP_VERIFIER_URL
+    default: https://verify.agentaddress.org
+    description: |
+      URL of the AAP verifier used for email/phone attestations during
+      address claim, rotate-key, and identity verification. Defaults to
+      the public testbed verifier. Override for self-hosted setups.
+  - name: AAP_TRUST_LIST_PUBLIC_KEY_B64
+    default: HorTQKACHLqp2kt3jscOmdpDuRBpDd15Bqahw05gWwc
+    label: AAP trust-list public key
+    description: |
+      Advanced/self-hosted override. Base64url Ed25519 public key for the
+      standards-body signer of the trusted-verifier list. The public
+      agentaddress.org relay uses the built-in default.
+  - name: AAP_PRIVATE_SEED_B64
+    label: Override Ed25519 seed
+    description: |
+      Base64url Ed25519 seed. Auto-generated and persisted to
+      ~/.hermes/aap.json on first run if not provided.
+  - name: AAP_HTTP_TIMEOUT_SECONDS
+    default: "35"
+  - name: AAP_MIRROR
+    default: "on"
+    description: |
+      Set to "off" to disable mirroring inbound/outbound AAP messages to your
+      home channels. Default mirrors to every configured platform's home
+      channel for human-in-the-loop visibility.
+  - name: AAP_AUTONOMOUS
+    default: "off"
+    description: |
+      Set to "on" to let the agent reply to AAP messages autonomously,
+      without waiting for user confirmation on the home channel. Mirror
+      notifications still fire on both sides so the user can observe.
+      Anti-loop language is included in the autonomous platform_hint but
+      is prompt-level enforcement only — no hard rate limit yet.
+  - name: AAP_ALLOW_ALL_USERS
+    default: "true"
+    description: |
+      Controls Hermes's user-authorization layer for AAP messages.
+      Default "true" — every AAP peer is considered Hermes-authorized,
+      because AAP's authoritative trust gate is capability-token
+      enforcement inside the adapter (NOT Hermes's standard allowlist).
+      Set to "false" to opt into Hermes-layer gating; you must then
+      list approved peers in AAP_ALLOWED_USERS.
+  - name: AAP_ALLOWED_USERS
+    description: |
+      Comma-separated list of AAP addresses to treat as Hermes-authorized.
+      Only consulted when AAP_ALLOW_ALL_USERS is "false". Format:
+      "alice^example.dev,bob^example.dev".
