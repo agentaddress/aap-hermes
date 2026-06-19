@@ -133,17 +133,20 @@ async def aap_send_message_handler(
         }
     if originator is None:
         from .turn_context import get_current_session_source
-        from . import anti_relay as _anti_relay
+        from .anti_relay import (
+            peers_who_have_messaged_session,
+            resolve_session_id_for_chat,
+        )
 
         source = get_current_session_source()
         if source is not None:
             chat_id = getattr(source, "chat_id", None)
             session_id = (
-                _anti_relay.resolve_session_id_for_chat(chat_id)
+                resolve_session_id_for_chat(chat_id)
                 if chat_id else None
             )
             if session_id is not None:
-                allowed_peers = _anti_relay.peers_who_have_messaged_session(
+                allowed_peers = peers_who_have_messaged_session(
                     session_id,
                 )
                 if allowed_peers and to not in allowed_peers:

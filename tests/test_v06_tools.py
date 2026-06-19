@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
+import sys
+import types
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -9,6 +14,54 @@ import pytest
 from aap.keys import generate_keypair
 
 from aap.identity import IdentityFile
+
+
+@pytest.mark.asyncio
+async def test_send_message_imports_anti_relay_under_hermes_plugin_namespace(
+    tmp_path, monkeypatch
+):
+    """Hermes loads the plugin as ``hermes_plugins.aap``. The send-message
+    hot path must import sibling modules successfully under that package
+    name, not just under tests' ``aap_hermes`` alias."""
+    parent = types.ModuleType("hermes_plugins")
+    parent.__path__ = []
+    monkeypatch.setitem(sys.modules, "hermes_plugins", parent)
+
+    root = Path(__file__).parent.parent
+    spec = importlib.util.spec_from_file_location(
+        "hermes_plugins.aap",
+        root / "__init__.py",
+        submodule_search_locations=[str(root)],
+    )
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, "hermes_plugins.aap", module)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    tools_mod = importlib.import_module("hermes_plugins.aap.tools")
+
+    seed, public = generate_keypair()
+    ident = IdentityFile(
+        private_seed=seed,
+        public_key=public,
+        address="chris^example.com",
+    )
+    client = MagicMock()
+    client.send_envelope = AsyncMock(return_value=42)
+    catalog_cache = MagicMock()
+    catalog_cache.get = AsyncMock(return_value=None)
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+
+    result = await tools_mod.aap_send_message_handler(
+        client,
+        ident,
+        catalog_cache,
+        "stranger^example.com",
+        "hi",
+    )
+
+    assert result["status"] == "error"
+    assert "friend" in result["detail"].lower()
 
 
 @pytest.fixture
