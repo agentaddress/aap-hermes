@@ -17,12 +17,12 @@ import secrets
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from aap.address import Address
 from aap.envelope import Envelope
 from aap.keys import encode_b64url
 from aap.payloads import AgentCard
 from aap.client import AAPClient, AAPClientError
 from aap.identity import IdentityFile
+from .address_input import parse_user_address
 from .mirror import (
     mirror_outbound_to_aap_group_session,
     mirror_outbound_to_aap_session,
@@ -109,7 +109,7 @@ async def aap_send_message_handler(
     the recipient will arrive as a future inbound on the AAP session.
     """
     try:
-        to = str(Address.parse(to))
+        to = parse_user_address(to)
     except ValueError as e:
         return {"status": "error", "detail": f"invalid address: {e}"}
 
@@ -299,7 +299,7 @@ async def aap_list_services_handler(
     business_address: str,
 ) -> dict[str, Any]:
     try:
-        business_address = str(Address.parse(business_address))
+        business_address = parse_user_address(business_address)
     except ValueError as e:
         return {"status": "error", "detail": f"invalid address: {e}"}
     if catalog_cache is None:
@@ -374,7 +374,7 @@ async def aap_describe_service_handler(
     service_id: str,
 ) -> dict[str, Any]:
     try:
-        business_address = str(Address.parse(business_address))
+        business_address = parse_user_address(business_address)
     except ValueError as e:
         return {"status": "error", "detail": f"invalid address: {e}"}
     if catalog_cache is None:
@@ -576,7 +576,7 @@ async def aap_send_service_request_handler(
     group_conversation_id: Optional[str] = None,
 ) -> dict[str, Any]:
     try:
-        business_address = str(Address.parse(business_address))
+        business_address = parse_user_address(business_address)
     except ValueError as e:
         return _failed_send(f"invalid address: {e}")
 
@@ -832,7 +832,7 @@ async def aap_propose_relationship_handler(
             ),
         }
     try:
-        peer_address = str(Address.parse(peer_address))
+        peer_address = parse_user_address(peer_address)
     except ValueError as e:
         return {"status": "error", "detail": f"invalid address: {e}"}
 
@@ -1142,7 +1142,7 @@ async def aap_revoke_relationship_handler(
     resource: Optional[str] = None,
 ) -> dict[str, Any]:
     try:
-        peer_address = str(Address.parse(peer_address))
+        peer_address = parse_user_address(peer_address)
     except ValueError as e:
         return {"status": "error", "detail": f"invalid address: {e}"}
 
@@ -1316,7 +1316,6 @@ async def aap_group_start_handler(
     goal: str = "",
 ) -> dict[str, Any]:
     """Create a new group conversation and send invitations to each member."""
-    from aap.address import Address
     from aap.conversations import Conversation
     from aap.group_flow import build_group_invitation_envelope
 
@@ -1329,7 +1328,7 @@ async def aap_group_start_handler(
     canonical_members: list[str] = []
     for m in members:
         try:
-            canonical_members.append(str(Address.parse(m)))
+            canonical_members.append(parse_user_address(m))
         except ValueError as e:
             return {
                 "status": "error",

@@ -136,6 +136,33 @@ async def test_send_message_accepted_for_friend(
 
 
 @pytest.mark.asyncio
+async def test_send_message_expands_hosted_address_shorthand(
+    tmp_hermes_home, identity, fake_client
+):
+    from aap.relationships import RelationshipRecord, RelationshipStore
+    from aap_hermes.tools import aap_send_message_handler
+
+    RelationshipStore.load(tmp_hermes_home)._add_verified(RelationshipRecord(
+        relationship_type="friend",
+        peer_address="mary^agentaddress.org",
+        established_at="2026-05-26T12:00:00Z",
+        proposal_envelope_json="{}",
+        accept_envelope_json="{}",
+    ))
+
+    result = await aap_send_message_handler(
+        fake_client, identity, MagicMock(),
+        "mary^", "hello",
+    )
+
+    assert result["status"] == "sent"
+    fake_client.send_envelope.assert_called_once_with(
+        to="mary^agentaddress.org",
+        text="hello",
+    )
+
+
+@pytest.mark.asyncio
 async def test_send_message_to_business_is_fire_and_forget(
     tmp_hermes_home, identity, fake_client
 ):
@@ -416,6 +443,26 @@ async def test_propose_friendship_records_pending_outbound(
     assert row is not None
     assert row.peer_address == "mary^example.com"
     assert row.relationship_type == "friend"
+
+
+@pytest.mark.asyncio
+async def test_propose_relationship_expands_hosted_address_shorthand(
+    tmp_hermes_home, identity, fake_client
+):
+    from aap.stores.pending_proposals import PendingProposalStore
+    from aap_hermes.tools import aap_propose_relationship_handler
+
+    result = await aap_propose_relationship_handler(
+        fake_client, identity, "mary^",
+        relationship_type="friend",
+    )
+
+    assert result["status"] == "pending_approval"
+    pending = PendingProposalStore.load(tmp_hermes_home).take_outbound(
+        result["nonce"],
+    )
+    assert pending is not None
+    assert pending.peer_address == "mary^agentaddress.org"
 
 
 # -- aap_propose_relationship: admin and team ------------------------------
@@ -840,6 +887,55 @@ async def test_clear_conversation_resets_session(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_clear_conversation_expands_hosted_address_shorthand(monkeypatch):
+    from aap_hermes.commands import handle_aap_command
+
+    fake_entry = MagicMock(session_id="20260528_140000_deadbeef")
+    fake_store = MagicMock()
+    fake_store.reset_session = MagicMock(return_value=fake_entry)
+    fake_runner = MagicMock(session_store=fake_store)
+
+    import sys
+    import types
+
+    fake_run_mod = types.ModuleType("gateway.run")
+    fake_run_mod._gateway_runner_ref = lambda: fake_runner
+
+    fake_base_mod = types.ModuleType("gateway.platforms.base")
+
+    class _FakeSessionSource:
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+    fake_base_mod.SessionSource = _FakeSessionSource
+
+    fake_session_mod = types.ModuleType("gateway.session")
+    captured = {}
+
+    def fake_build_session_key(source):
+        captured["chat_id"] = source.chat_id
+        return f"agent:main:aap:dm:{source.chat_id}"
+
+    fake_session_mod.build_session_key = fake_build_session_key
+
+    monkeypatch.setitem(sys.modules, "gateway.run", fake_run_mod)
+    monkeypatch.setitem(sys.modules, "gateway.platforms.base", fake_base_mod)
+    monkeypatch.setitem(sys.modules, "gateway.session", fake_session_mod)
+
+    out = await handle_aap_command(
+        "/aap clear_conversation hermes2^",
+        MagicMock(), MagicMock(),
+    )
+
+    assert captured["chat_id"] == "hermes2^agentaddress.org"
+    fake_store.reset_session.assert_called_once_with(
+        "agent:main:aap:dm:hermes2^agentaddress.org"
+    )
+    assert "hermes2^agentaddress.org" in out
+
+
+@pytest.mark.asyncio
 async def test_clear_conversation_reports_no_session_to_clear(monkeypatch):
     """If reset_session returns None (no entry existed), surface that."""
     from aap_hermes.commands import handle_aap_command
@@ -1153,6 +1249,36 @@ async def test_group_start_creates_conversation_and_sends_invitations(
     assert conv is not None
     assert conv.purpose == "Sunday playdate"
     assert conv.convener == identity.address
+
+
+@pytest.mark.asyncio
+async def test_group_start_expands_hosted_address_shorthand(
+    tmp_hermes_home, identity, fake_client
+):
+    from aap.relationships import RelationshipRecord, RelationshipStore
+    from aap_hermes.tools import aap_group_start_handler
+
+    RelationshipStore.load(tmp_hermes_home)._add_verified(RelationshipRecord(
+        relationship_type="friend",
+        peer_address="hermes2^agentaddress.org",
+        established_at="2026-05-26T12:00:00Z",
+        proposal_envelope_json="{}",
+        accept_envelope_json="{}",
+    ))
+
+    fake_client.send_envelope_raw = AsyncMock(return_value=42)
+
+    result = await aap_group_start_handler(
+        fake_client, identity,
+        ["hermes2^"],
+        "Sunday playdate",
+        name="Sunday Playdate",
+        goal="Agree on a playdate time",
+    )
+
+    assert result["status"] == "started"
+    assert result["members"][1:] == ["hermes2^agentaddress.org"]
+    assert result["no_relationship_warning"] == []
 
 
 @pytest.mark.asyncio
