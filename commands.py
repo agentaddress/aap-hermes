@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import logging
 import shlex
-
-from aap.address import Address
 from aap.keys import decode_b64url, encode_b64url
 
 from aap.client import AAPClient, AAPClientError
 from aap.identity import IdentityFile
+from .address_input import parse_user_address
 from .mirror import mirror_to_home_channels
 
 logger = logging.getLogger(__name__)
@@ -69,7 +68,7 @@ async def handle_aap_command(
         to = parts[2]
         text = " ".join(parts[3:])
         try:
-            to = str(Address.parse(to))
+            to = parse_user_address(to)
         except ValueError as e:
             return f"Invalid address {to!r}: {e}"
         # v0.6: relationship-gated send. Friend / admin / team peers receive
@@ -442,7 +441,7 @@ def _inspect_cmd(args: list[str]) -> str:
         if len(args) < 2:
             return "Usage: /aap inspect peer <agent-address> [limit]"
         try:
-            peer = str(Address.parse(args[1]))
+            peer = parse_user_address(args[1])
         except ValueError as e:
             return f"Invalid address {args[1]!r}: {e}"
         limit = parse_limit(args[2] if len(args) > 2 else None)
@@ -473,7 +472,7 @@ def _bind_identity(args: list[str]) -> str:
     if len(args) < 2:
         return "Usage: /aap bind <address> <contact-id>"
     try:
-        peer = str(Address.parse(args[0]))
+        peer = parse_user_address(args[0])
     except ValueError as e:
         return f"Invalid address {args[0]!r}: {e}"
     contact_id = args[1].strip()
@@ -489,7 +488,7 @@ def _bind_identity(args: list[str]) -> str:
 
 def _unbind_identity(address: str) -> str:
     try:
-        peer = str(Address.parse(address))
+        peer = parse_user_address(address)
     except ValueError as e:
         return f"Invalid address {address!r}: {e}"
     removed = _get_stores().identity_bindings.unbind(peer)
@@ -517,11 +516,11 @@ def _clear_conversation_cmd(args: list[str]) -> str:
     raw = args[0]
 
     # Distinguish peer addresses from conversation_ids: agent addresses
-    # parse via Address.parse; UUID-shaped conv_ids do not. Treat anything
+    # parse via parse_user_address; UUID-shaped conv_ids do not. Treat anything
     # Address-shaped as a 1:1 peer; everything else as a conv_id.
     label: str
     try:
-        peer = str(Address.parse(raw))
+        peer = parse_user_address(raw)
         label = peer
         chat_id = peer
     except ValueError:
@@ -703,7 +702,6 @@ async def _group_start(args: list[str], client, identity) -> str:
     team relationship with them — so each member you invite must already
     have one of those relationships established with you.
     """
-    from aap.address import Address
     from aap.conversations import Conversation
     from aap.group_flow import build_group_invitation_envelope
 
@@ -714,7 +712,7 @@ async def _group_start(args: list[str], client, identity) -> str:
     canonical_members: list[str] = []
     for m in members_in:
         try:
-            canonical_members.append(str(Address.parse(m)))
+            canonical_members.append(parse_user_address(m))
         except ValueError as e:
             return f"Invalid address {m!r}: {e}"
     members_in = canonical_members
@@ -849,14 +847,13 @@ async def _group_leave(args: list[str], client, identity) -> str:
 
 async def _group_add(args: list[str], client, identity) -> str:
     """``/aap group add <conversation_id> <member>`` (convener-only)."""
-    from aap.address import Address
     from aap.group_flow import build_group_membership_update_envelope
 
     if len(args) < 2:
         return "Usage: /aap group add <conversation_id> <member>"
     conversation_id, new_member = args[0], args[1]
     try:
-        new_member = str(Address.parse(new_member))
+        new_member = parse_user_address(new_member)
     except ValueError as e:
         return f"Invalid address {new_member!r}: {e}"
 
@@ -1519,7 +1516,7 @@ async def _list_services_cmd(args, client, identity) -> str:
     if len(args) < 1:
         return "Usage: /aap services <business-address>"
     try:
-        business = str(Address.parse(args[0]))
+        business = parse_user_address(args[0])
     except ValueError as e:
         return f"Invalid address: {e}"
 
@@ -1543,7 +1540,7 @@ async def _describe_service_cmd(args, client, identity) -> str:
     if len(args) < 2:
         return "Usage: /aap describe <business-address> <service-id>"
     try:
-        business = str(Address.parse(args[0]))
+        business = parse_user_address(args[0])
     except ValueError as e:
         return f"Invalid address: {e}"
     service_id = args[1]
@@ -1589,7 +1586,7 @@ async def _propose_friendship_cmd(args, client, identity) -> str:
             "       (type defaults to 'friend'; 'team' requires a resource label)"
         )
     try:
-        peer = str(Address.parse(args[0]))
+        peer = parse_user_address(args[0])
     except ValueError as e:
         return f"Invalid address: {e}"
 
@@ -1631,7 +1628,7 @@ async def _revoke_friendship_cmd(args, client, identity) -> str:
     if len(args) < 1:
         return "Usage: /aap unfriend <peer-address>"
     try:
-        peer = str(Address.parse(args[0]))
+        peer = parse_user_address(args[0])
     except ValueError as e:
         return f"Invalid address: {e}"
 
