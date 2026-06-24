@@ -233,6 +233,8 @@ def test_platform_hint_includes_human_gate_language(monkeypatch, tmp_path):
     assert "owner" in lower or "user" in lower
     assert "home channel" in lower or "primary chat" in lower
     assert "aap_send_message" in hint
+    assert "agentaddress.org" in lower
+    assert "do not ask for a domain" in lower
     # Must NOT contain the autonomous-mode signal
     assert "autonomous mode" not in lower
 
@@ -254,9 +256,21 @@ def test_platform_hint_autonomous_mode_when_env_set(monkeypatch, tmp_path):
     assert "reply directly" in lower or "without waiting" in lower
     # Anti-loop guidance present
     assert "loop" in lower or "acknowledgments" in lower
+    assert "agentaddress.org" in lower
+    assert "do not ask for a domain" in lower
     # Human-gate language absent
     assert "do not reply to aap messages without" not in lower
     assert "wait for their guidance" not in lower
+
+
+def test_send_message_tool_schema_teaches_hosted_address_shorthand():
+    description = (
+        AAP_SEND_MESSAGE_SCHEMA["parameters"]["properties"]["to"]["description"]
+    )
+
+    assert "tom^" in description
+    assert "agentaddress.org" in description
+    assert "instead of asking the user for a domain" in description
 
 
 def test_platform_hint_autonomous_off_means_human_gate(monkeypatch, tmp_path):
