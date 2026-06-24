@@ -163,6 +163,34 @@ async def test_send_message_expands_hosted_address_shorthand(
 
 
 @pytest.mark.asyncio
+async def test_slash_send_expands_hosted_address_shorthand(
+    tmp_hermes_home, identity, fake_client
+):
+    from aap.relationships import RelationshipRecord, RelationshipStore
+    from aap_hermes.commands import handle_aap_command
+
+    RelationshipStore.load(tmp_hermes_home)._add_verified(RelationshipRecord(
+        relationship_type="friend",
+        peer_address="tom^agentaddress.org",
+        established_at="2026-05-26T12:00:00Z",
+        proposal_envelope_json="{}",
+        accept_envelope_json="{}",
+    ))
+
+    out = await handle_aap_command(
+        "/aap send tom^ hi Tom",
+        fake_client,
+        identity,
+    )
+
+    assert "Sent to tom^agentaddress.org" in out
+    fake_client.send_envelope.assert_called_once_with(
+        to="tom^agentaddress.org",
+        text="hi Tom",
+    )
+
+
+@pytest.mark.asyncio
 async def test_send_message_to_business_is_fire_and_forget(
     tmp_hermes_home, identity, fake_client
 ):

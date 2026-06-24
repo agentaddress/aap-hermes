@@ -40,6 +40,13 @@ def _get_stores():
 
 logger = logging.getLogger(__name__)
 
+_ADDRESS_INPUT_DESCRIPTION = (
+    "AAP address. Full form is <localpart>^<domain>. Hosted Agent Address "
+    "shorthand is also valid: <localpart>^ means "
+    "<localpart>^agentaddress.org, so pass values like tom^ through instead "
+    "of asking the user for a domain."
+)
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -76,7 +83,10 @@ AAP_SEND_MESSAGE_SCHEMA = {
         "properties": {
             "to": {
                 "type": "string",
-                "description": "Recipient AAP address, e.g. james^hermes.example",
+                "description": (
+                    f"Recipient {_ADDRESS_INPUT_DESCRIPTION} "
+                    "Example: james^hermes.example or tom^."
+                ),
             },
             "text": {
                 "type": "string",
@@ -286,7 +296,10 @@ AAP_LIST_SERVICES_SCHEMA = {
         "properties": {
             "business_address": {
                 "type": "string",
-                "description": "AAP address of the business, e.g. reception^frankies.example",
+                "description": (
+                    f"Business {_ADDRESS_INPUT_DESCRIPTION} "
+                    "Example: reception^frankies.example or reception^."
+                ),
             },
         },
         "required": ["business_address"],
@@ -356,7 +369,7 @@ AAP_DESCRIBE_SERVICE_SCHEMA = {
         "properties": {
             "business_address": {
                 "type": "string",
-                "description": "AAP address of the business.",
+                "description": f"Business {_ADDRESS_INPUT_DESCRIPTION}",
             },
             "service_id": {
                 "type": "string",
@@ -437,7 +450,7 @@ AAP_SEND_SERVICE_REQUEST_SCHEMA = {
         "properties": {
             "business_address": {
                 "type": "string",
-                "description": "Business AAP address.",
+                "description": f"Business {_ADDRESS_INPUT_DESCRIPTION}",
             },
             "service_id": {
                 "type": "string",
@@ -764,7 +777,10 @@ AAP_PROPOSE_RELATIONSHIP_SCHEMA = {
         "properties": {
             "peer_address": {
                 "type": "string",
-                "description": "Peer AAP address, e.g. mary^example.com",
+                "description": (
+                    f"Peer {_ADDRESS_INPUT_DESCRIPTION} "
+                    "Example: mary^example.com or mary^."
+                ),
             },
             "relationship_type": {
                 "type": "string",
@@ -799,7 +815,7 @@ AAP_PROPOSE_FRIENDSHIP_SCHEMA = {
         "properties": {
             "peer_address": {
                 "type": "string",
-                "description": "Peer AAP address.",
+                "description": f"Peer {_ADDRESS_INPUT_DESCRIPTION}",
             },
         },
         "required": ["peer_address"],
@@ -1111,7 +1127,10 @@ AAP_REVOKE_RELATIONSHIP_SCHEMA = {
         "properties": {
             "peer_address": {
                 "type": "string",
-                "description": "Peer AAP address whose relationship to revoke.",
+                "description": (
+                    f"Peer {_ADDRESS_INPUT_DESCRIPTION} whose relationship "
+                    "to revoke."
+                ),
             },
             "relationship_type": {
                 "type": "string",
@@ -1265,7 +1284,7 @@ AAP_GROUP_START_SCHEMA = {
                 "description": (
                     "Addresses of the OTHER members you want in the group "
                     "(don't include yourself — you're added automatically). "
-                    "Each address should be of the form <localpart>^<domain>."
+                    f"Each member is an {_ADDRESS_INPUT_DESCRIPTION}"
                 ),
             },
             "purpose": {
