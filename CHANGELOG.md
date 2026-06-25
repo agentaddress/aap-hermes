@@ -165,7 +165,7 @@ request, then can notify the user and update group chats with the result.
 
 First-contact handshake now establishes bidirectional chat in a single
 approval instead of two. The auto-fired `capability_request` carries a
-reciprocal `offered_grants` for `agentaddressprotocol.org/send-message`,
+reciprocal `offered_grants` for `agentaddress.org/send-message`,
 and the grant handler fulfills offered grants by issuing the promised
 tokens back to the peer as soon as the peer's grant arrives.
 
@@ -195,11 +195,11 @@ recipient approve with a bare `approve` / `deny` reply.
 
 ### Added
 
-- **Sender side:** `aap_send_message` now pre-checks for a held capability token. When none exists for the recipient, the tool auto-fires a `capability_request` (scope `agentaddressprotocol.org/send-message`) and queues the chat text in `$HERMES_HOME/aap-pending-sends.json` (TTL 24h, max 5 per peer). Returns `{"status": "pending_approval", "nonce": ...}` so the LLM stops claiming the message went through when it didn't.
+- **Sender side:** `aap_send_message` now pre-checks for a held capability token. When none exists for the recipient, the tool auto-fires a `capability_request` (scope `agentaddress.org/send-message`) and queues the chat text in `$HERMES_HOME/aap-pending-sends.json` (TTL 24h, max 5 per peer). Returns `{"status": "pending_approval", "nonce": ...}` so the LLM stops claiming the message went through when it didn't.
 - **Sender side:** when the matching `capability_grant` arrives, `_handle_capability_grant` drains the pending queue and sends each message with the new token. Deferred sends are mirrored to home channels prefixed with `(deferred)`.
 - **Sender side:** when a `capability_denial` arrives, the pending queue is dropped and a `❌ … N queued messages dropped` notice goes to the home channels.
 - **Receiver side:** the home-channel consent prompt now invites the user to reply with a bare `approve` or `deny`. A new `pre_gateway_dispatch` hook intercepts those replies and resolves the most-recent pending capability_request, falling back to `/aap approve <nonce>` / `/aap deny <nonce>` for explicit targeting.
-- **Default scope:** the canonical 1:1 chat scope `agentaddressprotocol.org/send-message` (already reserved in `BOOTSTRAP_CHAT_SCOPES`) is now exported as `tools.DEFAULT_CHAT_SCOPE`.
+- **Default scope:** the canonical 1:1 chat scope `agentaddress.org/send-message` (already reserved in `BOOTSTRAP_CHAT_SCOPES`) is now exported as `tools.DEFAULT_CHAT_SCOPE`.
 
 ## v0.9.1 — 2026-05-21
 
@@ -216,10 +216,10 @@ This release adds host-side support for the v0.5 verification + discovery protoc
 
 ### Added
 
-- **`verifiers.py`** — trusted-verifier list fetching (24h on-disk cache), local overrides, verifier-pubkey lookup. Default trust source is `https://agentaddressprotocol.org/.well-known/aap-trusted-verifiers` (overridable via `AAP_TRUSTED_VERIFIERS_URL`).
+- **`verifiers.py`** — trusted-verifier list fetching (24h on-disk cache), local overrides, verifier-pubkey lookup. Default trust source is `https://agentaddress.org/.well-known/aap-trusted-verifiers` (overridable via `AAP_TRUSTED_VERIFIERS_URL`).
 - **`attestations.py`** — local attestation store at `$HERMES_HOME/aap-attestations.json`. Holds signed `VerificationAttestation` envelopes for selective disclosure on outgoing capability requests.
 - **`verifier_client.py`** — async HTTPS client for the verifier's `/aap/verify/{sms,email}/{start,confirm}` endpoints. Signs request bodies with the agent's key.
-- **`verification_flow.py`** — pending-OTP store + auto-grant of a long-lived discovery-relay chat token to the verifier on successful verification. Token carries scope `agentaddressprotocol.org/discovery-introduction` so the verifier can later relay introduction requests.
+- **`verification_flow.py`** — pending-OTP store + auto-grant of a long-lived discovery-relay chat token to the verifier on successful verification. Token carries scope `agentaddress.org/discovery-introduction` so the verifier can later relay introduction requests.
 - **Verification slash commands**: `/aap verify phone <number>`, `/aap verify email <addr>`, `/aap verify confirm <code>`. End-to-end flow: start → user enters code → confirm → attestation stored → chat token granted to verifier (and a `capability_grant` envelope sent so the verifier knows).
 - **Auto-attach attestations on outgoing capability requests**: when `/aap request <peer> <scope>` runs, the host fetches the publisher's catalog entry for each scope, looks for `verification_required`, and attaches matching attestations via the new `Envelope.verification_attestations` field. Missing attestation triggers a fail-loud prompt telling the user which verification to do.
 - **`discovery.py`** — outbound `query_discovery` posts a signed envelope to a trusted verifier's `discovery_endpoint`; client sends the **plaintext** identifier under TLS (hashing is server-side, since the pepper is a verifier secret). Inbound `render_introduction_prompt` produces a three-flavor consent card: mutual contact (low friction, contact name shown), attested-no-match (moderate friction), unverified searcher (high friction, includes block option). Pending introductions persist at `$HERMES_HOME/aap-pending-introductions.json`.
@@ -256,7 +256,7 @@ This release adds group-conversation support (up to 10 members per group) on top
 - **`ConversationStore`** (`conversations.py`): persists active conversations at `$HERMES_HOME/aap-conversations.json`. Tracks id, purpose, members, convener, accepted-at, last-message-at.
 - **`group_flow.py`**: envelope builders for `aap.group-invitation/v1`, `aap.group-membership-update/v1`, `aap.group-leave/v1`.
 - **Dispatch routing** for the three new group payload types. Group invitations trigger consent cards; updates apply to the local conversation store; leaves remove the leaver from the local member list. Chat envelopes carrying a `conversation_id` are gated by local-membership checks and surfaced to the LLM with a group-context preamble.
-- **Bootstrap auto-approval policy** (`bootstrap.py`): when accepting a group invitation with "auto-trust all members", subsequent `capability_request`s from those members for chat-equivalent scopes (`agentaddressprotocol.org/group-chat`, `agentaddressprotocol.org/send-message`) are auto-approved within a 1-hour grace window. Higher-risk scopes still require user consent.
+- **Bootstrap auto-approval policy** (`bootstrap.py`): when accepting a group invitation with "auto-trust all members", subsequent `capability_request`s from those members for chat-equivalent scopes (`agentaddress.org/group-chat`, `agentaddress.org/send-message`) are auto-approved within a 1-hour grace window. Higher-risk scopes still require user consent.
 - **Broadcast send** (`conversations.broadcast_to_conversation`): when sending to a group, the helper sends N-1 individually-addressed envelopes, each with the appropriate capability token per recipient. All carry the same `conversation_id` and `conversation_members`. Failed recipients are logged + reported but do not stop the broadcast.
 - **Chat-envelope conversation fields**: `build_chat_envelope` and `client.send_envelope` accept `conversation_id` + `conversation_members`. Both are signed-over (JCS) — set before `.sign()`.
 - **New slash commands**: `/aap group start <members...>`, `/aap group accept <nonce>`, `/aap group leave <conv>`, `/aap group add <conv> <member>`, `/aap group remove <conv> <member>`, `/aap group list`, `/aap group send <conv> <text>`.
