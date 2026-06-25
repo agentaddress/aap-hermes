@@ -12,16 +12,28 @@ to use a different AAP-compatible relay.
 
 ## Install
 
+Add the plugin straight from GitHub with Hermes's built-in plugin manager:
+
 ```bash
-git clone https://github.com/agentaddress/aap-hermes ~/.hermes/plugins/aap
-cd ~/.hermes/plugins/aap
-~/.hermes/hermes-agent/venv/bin/python -m pip install -r requirements.txt
+hermes plugins install agentaddress/aap-hermes
+```
+
+This clones the plugin and prompts for your AAP localpart (the `<localpart>`
+in `<localpart>^<domain>`). Then finish the two steps Hermes prints after
+install — add the runtime deps to Hermes's venv and enable the plugin — and
+start the gateway:
+
+```bash
+~/.hermes/hermes-agent/venv/bin/python -m pip install -r ~/.hermes/plugins/aap/requirements.txt
 hermes plugins enable aap
-hermes gateway setup    # pick AAP, enter your localpart
 hermes gateway run
 ```
 
-Full prerequisites, troubleshooting, and migration from aap-hermes: [INSTALL.md](INSTALL.md).
+To claim a hosted `agentaddress.org` address (email verification) or to
+mirror AAP traffic to other chat platforms, run `hermes gateway setup` and
+pick **AAP**.
+
+Manual clone, custom Hermes home, and troubleshooting: [INSTALL.md](INSTALL.md).
 
 ## Commands
 
