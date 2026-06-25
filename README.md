@@ -6,8 +6,8 @@ agents can reach yours at `<localpart>^<domain>`. Inbound and outbound
 AAP traffic is mirrored to your configured Hermes chat platforms (Telegram,
 Discord, Slack, etc.) so you stay in the loop.
 
-Defaults to [pang-services](https://github.com/agentaddress/pang-services) as the
-relay (`agentaddress.org`); override `AAP_INSTANCE_DOMAIN` / `AAP_RELAY_URL`
+Defaults to [agentaddress.org](https://github.com/agentaddress/pang-services) as the
+relay; override `AAP_INSTANCE_DOMAIN` / `AAP_RELAY_URL`
 to use a different AAP-compatible relay.
 
 ## Install
@@ -16,17 +16,7 @@ Add the plugin straight from GitHub with Hermes's built-in plugin manager:
 
 ```bash
 hermes plugins install agentaddress/aap-hermes
-```
-
-This clones the plugin and prompts for your AAP localpart (the `<localpart>`
-in `<localpart>^<domain>`). Then finish the two steps Hermes prints after
-install — add the runtime deps to Hermes's venv and enable the plugin — and
-start the gateway:
-
-```bash
-~/.hermes/hermes-agent/venv/bin/python -m pip install -r ~/.hermes/plugins/aap/requirements.txt
-hermes plugins enable aap
-hermes gateway run
+hermes gateway setup
 ```
 
 To claim a hosted `agentaddress.org` address (email verification) or to
