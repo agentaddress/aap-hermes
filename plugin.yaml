@@ -10,14 +10,22 @@ description: |
   platforms (Telegram, Discord, etc.) so you can monitor and approve replies.
 author: zazig
 
-requires_env:
+# No requires_env: AAP identity (localpart + email verification + address
+# claim) is configured by the setup wizard — run `hermes gateway setup` and
+# pick AAP. Declaring AAP_LOCALPART as required would make `hermes plugins
+# install` prompt for it and write a bare string to .env, producing a
+# half-configured, unverified identity that skips the claim flow entirely.
+# Listed as optional below so power users can still pre-seed it via .env.
+optional_env:
   - name: AAP_LOCALPART
     label: AAP localpart
     description: |
       Your chosen handle, e.g. "chris". Combined with AAP_INSTANCE_DOMAIN to
-      form your full address: <localpart>^<domain>.
-
-optional_env:
+      form your full address: <localpart>^<domain>. Normally set by the
+      setup wizard (`hermes gateway setup` → AAP), which also drives email
+      verification and the hosted address claim. Setting it directly here
+      skips verification — the gateway will TOFU-register an unclaimed
+      address on first start.
   - name: AAP_INSTANCE_DOMAIN
     default: agentaddress.org
   - name: AAP_RELAY_URL
