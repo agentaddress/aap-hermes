@@ -2,12 +2,14 @@
 
 `aap-hermes` is a [Hermes Agent](https://github.com/NousResearch/hermes-agent)
 plugin. The repo IS the plugin (flat layout per the Hermes plugin guide) —
-clone the repo directly into `~/.hermes/plugins/aap-hermes/`.
+clone the repo directly into `~/.hermes/plugins/aap/` (the directory name
+must match the plugin's `name: aap` in `plugin.yaml` — this is also where
+`hermes plugins install` puts it).
 
 ## 1. Clone the plugin
 
 ```bash
-git clone https://github.com/agentaddress/aap-hermes ~/.hermes/plugins/aap-hermes
+git clone https://github.com/agentaddress/aap-hermes ~/.hermes/plugins/aap
 ```
 
 ## 2. Install runtime deps into Hermes's venv
@@ -16,7 +18,7 @@ Hermes does not auto-install plugin Python dependencies. Install them into
 the Hermes venv manually:
 
 ```bash
-cd ~/.hermes/plugins/aap-hermes
+cd ~/.hermes/plugins/aap
 ~/.hermes/hermes-agent/venv/bin/python -m pip install -r requirements.txt
 ```
 
@@ -112,7 +114,7 @@ channel before sending replies via the `aap_send_message` tool.
 ## Updating
 
 ```bash
-cd ~/.hermes/plugins/aap-hermes
+cd ~/.hermes/plugins/aap
 git pull
 ~/.hermes/hermes-agent/venv/bin/python -m pip install -r requirements.txt --upgrade
 hermes gateway restart
@@ -122,15 +124,15 @@ hermes gateway restart
 
 ```bash
 hermes plugins disable aap
-rm -rf ~/.hermes/plugins/aap-hermes
+rm -rf ~/.hermes/plugins/aap
 # Optional: also drop ~/.hermes/aap.json (your identity) if you don't plan to reinstall
 ```
 
 ## Troubleshooting
 
-**"No __init__.py in /Users/.../aap-hermes"** — plugin directory layout is
+**"No __init__.py in /Users/.../aap"** — plugin directory layout is
 wrong. The repo root files (`__init__.py`, `adapter.py`, …) must sit
-directly under `~/.hermes/plugins/aap-hermes/`, not in a nested
+directly under `~/.hermes/plugins/aap/`, not in a nested
 subdirectory.
 
 **"No module named 'aap'" / "No module named 'rfc8785'"** — runtime deps
