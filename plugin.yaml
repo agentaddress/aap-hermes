@@ -1,7 +1,7 @@
 name: aap
 label: AAP
 kind: platform
-version: 0.16.1
+version: 0.16.2
 description: |
   Agent Address Protocol channel for Hermes. Gives your agent an AAP address
   (<localpart>^<domain>) and connects it to an AAP-compatible relay

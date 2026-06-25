@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.16.2 — 2026-06-25 — trust-root issuer domain
+
+### Changed
+
+- Require `agentaddress==0.10.0`, which moves the trusted-verifiers trust-root
+  issuer to `aap-trust-root^agentaddress.org`. Must run against a
+  pang-services relay on the same `aap` version; the Ed25519 trust-root key is
+  unchanged.
+
 ## v0.16.1 — 2026-06-16 — authenticated encrypted routing
 
 ### Security
