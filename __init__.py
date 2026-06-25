@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-__version__ = "0.16.1"
+__version__ = "0.16.2"
 
 logger = logging.getLogger(__name__)
 
