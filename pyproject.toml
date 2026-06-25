@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://agentaddressprotocol.org"
+Homepage = "https://agentaddress.org"
 Source = "https://github.com/agentaddress/aap-hermes"
 
 [tool.pytest.ini_options]

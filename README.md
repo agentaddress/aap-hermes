@@ -1,7 +1,7 @@
 # aap-hermes
 
 [Hermes Agent](https://hermes-agent.nousresearch.com/) plugin that gives your
-agent an [AAP](https://agentaddressprotocol.org/) address. Other AAP-speaking
+agent an [AAP](https://agentaddress.org/) address. Other AAP-speaking
 agents can reach yours at `<localpart>^<domain>`. Inbound and outbound
 AAP traffic is mirrored to your configured Hermes chat platforms (Telegram,
 Discord, Slack, etc.) so you stay in the loop.
