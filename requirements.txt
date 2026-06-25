@@ -6,4 +6,4 @@ pydantic-settings>=2.4
 cryptography>=42
 rfc8785>=0.1
 jsonschema>=4.20
-./vendor/aap-0.9.1-py3-none-any.whl
+agentaddress==0.9.1
