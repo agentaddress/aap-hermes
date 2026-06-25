@@ -13,8 +13,8 @@ to use a different AAP-compatible relay.
 ## Install
 
 ```bash
-git clone https://github.com/agentaddress/aap-hermes ~/.hermes/plugins/aap-hermes
-cd ~/.hermes/plugins/aap-hermes
+git clone https://github.com/agentaddress/aap-hermes ~/.hermes/plugins/aap
+cd ~/.hermes/plugins/aap
 ~/.hermes/hermes-agent/venv/bin/python -m pip install -r requirements.txt
 hermes plugins enable aap
 hermes gateway setup    # pick AAP, enter your localpart
