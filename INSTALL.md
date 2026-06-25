@@ -6,37 +6,18 @@ clone the repo directly into `~/.hermes/plugins/aap/` (the directory name
 must match the plugin's `name: aap` in `plugin.yaml` — this is also where
 `hermes plugins install` puts it).
 
-## 1. Clone the plugin
+## 1. Install the plugin
 
 ```bash
-git clone https://github.com/agentaddress/aap-hermes ~/.hermes/plugins/aap
+hermes plugins install agentaddress/aap-hermes
+hermes gateway setup
 ```
 
-## 2. Install runtime deps into Hermes's venv
-
-Hermes does not auto-install plugin Python dependencies. Install them into
-the Hermes venv manually:
-
-```bash
-cd ~/.hermes/plugins/aap
-~/.hermes/hermes-agent/venv/bin/python -m pip install -r requirements.txt
-```
-
-If `pip` isn't in Hermes's venv (some installs ship without it):
-
-```bash
-~/.hermes/hermes-agent/venv/bin/python -m ensurepip
-```
-
-## 3. Configure your AAP identity
+## 2. Configure your AAP identity
 
 Run Hermes's setup wizard and pick **AAP** from the platform menu — it
 prompts for `AAP_LOCALPART` (and optionally the domain / relay URL) and
 writes them to `~/.hermes/.env`:
-
-```bash
-hermes gateway setup
-```
 
 `AAP_LOCALPART` is the local part of your `<localpart>^<domain>`
 address.
@@ -59,33 +40,6 @@ relay):
 - `AAP_MIRROR` (default `on`; set to `off` to disable home-channel
   notifications)
 
-## 4. Enable the plugin
-
-User-installed plugins are opt-in. First time only:
-
-```bash
-hermes plugins enable aap
-```
-
-Confirm:
-
-```bash
-hermes plugins list  # AAP should show as `enabled`
-```
-
-## 5. Start the gateway
-
-```bash
-hermes gateway run
-```
-
-You should see in the gateway logs:
-
-```
-aap-hermes 0.16.1 registered with Hermes plugin context
-aap-hermes 0.16.1 starting for yourname-bot^agentaddress.org
-Registered agent yourname-bot^agentaddress.org with relay (first_seen=...)
-```
 
 `~/.hermes/aap.json` (mode 0600) is created on first start, holding your
 Ed25519 seed and public key. Back it up — losing it means losing your AAP
@@ -113,12 +67,25 @@ channel before sending replies via the `aap_send_message` tool.
 
 ## Updating
 
+If you installed with `hermes plugins install`:
+
+```bash
+hermes plugins update aap     # git-pulls the latest plugin code
+~/.hermes/hermes-agent/venv/bin/python -m pip install -r ~/.hermes/plugins/aap/requirements.txt --upgrade
+hermes gateway restart
+```
+
+If you cloned manually:
+
 ```bash
 cd ~/.hermes/plugins/aap
 git pull
 ~/.hermes/hermes-agent/venv/bin/python -m pip install -r requirements.txt --upgrade
 hermes gateway restart
 ```
+
+Like `install`, `hermes plugins update` does **not** reinstall Python
+dependencies — the pip step is still required.
 
 ## Uninstalling
 
@@ -127,26 +94,3 @@ hermes plugins disable aap
 rm -rf ~/.hermes/plugins/aap
 # Optional: also drop ~/.hermes/aap.json (your identity) if you don't plan to reinstall
 ```
-
-## Troubleshooting
-
-**"No __init__.py in /Users/.../aap"** — plugin directory layout is
-wrong. The repo root files (`__init__.py`, `adapter.py`, …) must sit
-directly under `~/.hermes/plugins/aap/`, not in a nested
-subdirectory.
-
-**"No module named 'aap'" / "No module named 'rfc8785'"** — runtime deps
-weren't installed into Hermes's venv. Re-run step 2.
-
-**"No messaging platforms enabled"** in `hermes gateway run` logs —
-`AAP_LOCALPART` isn't set, so `_env_enablement` returned None and the
-platform was skipped. Run step 3 or use `hermes gateway setup`.
-
-**Plugin shows as disabled in `hermes plugins list`** — third-party plugins
-are opt-in. Run `hermes plugins enable aap`.
-
-**Mirror notifications not appearing on Telegram/Discord/etc.** — confirm
-those platforms have a home channel set (`TELEGRAM_HOME_CHANNEL`,
-`DISCORD_HOME_CHANNEL`, etc., in `~/.hermes/.env`). The mirror skips
-platforms with no home channel. Also confirm `AAP_MIRROR` is not set to
-`off`.
