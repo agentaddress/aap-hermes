@@ -12,7 +12,12 @@ import respx
 
 from aap.envelope import Envelope
 from aap.keys import encode_b64url, generate_keypair
-from aap_hermes import _run_claim_flow, _run_domain_claim_flow, _submit_address_claim
+from aap_hermes import (
+    _check_localpart_availability,
+    _run_claim_flow,
+    _run_domain_claim_flow,
+    _submit_address_claim,
+)
 
 
 class _Recorder:
@@ -32,6 +37,30 @@ def _make_prompt(values):
     """
     it = iter(values)
     return lambda *args, **kwargs: next(it)
+
+
+def test_check_localpart_availability_distinguishes_reserved():
+    with respx.mock(base_url="https://relay.test") as mock:
+        mock.get("/aap/addresses/check").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "localpart": "alice",
+                    "available": False,
+                    "reserved": True,
+                    "base_localpart": "alice",
+                    "base_claimed": False,
+                },
+            )
+        )
+        result = _check_localpart_availability("https://relay.test", "alice")
+
+    assert result == {
+        "status": "reserved",
+        "base_localpart": "alice",
+        "base_claimed": False,
+        "reserved": True,
+    }
 
 
 def test_happy_path_returns_true_and_shows_token():

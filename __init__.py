@@ -146,13 +146,15 @@ def _check_localpart_availability(relay_url: str, localpart: str) -> dict:
     """Hit GET /aap/addresses/check on the relay.
 
     Returns a dict with shape:
-        {"status": "available" | "taken" | "malformed" | "error",
+        {"status": "available" | "reserved" | "taken" | "malformed" | "error",
          "base_localpart": str | None,
          "base_claimed": bool | None}
 
     Statuses:
       - "available"  — name is free
-      - "taken"      — name is taken or reserved (200 with available: false)
+      - "reserved"   — name is held by a web reservation; proceed to claim
+                        with the reserving email
+      - "taken"      — name is already claimed or otherwise unavailable
       - "malformed"  — relay rejected the shape (400)
       - "error"      — network failure, unexpected status, or rate-limited;
                        caller should proceed without blocking on the check
@@ -175,11 +177,17 @@ def _check_localpart_availability(relay_url: str, localpart: str) -> dict:
         body = r.json()
     except ValueError:
         return {"status": "error", "base_localpart": None, "base_claimed": None}
-    status = "available" if body.get("available") else "taken"
+    if body.get("available"):
+        status = "available"
+    elif body.get("reserved"):
+        status = "reserved"
+    else:
+        status = "taken"
     return {
         "status": status,
         "base_localpart": body.get("base_localpart"),
         "base_claimed": body.get("base_claimed"),
+        "reserved": body.get("reserved"),
     }
 
 
@@ -686,6 +694,11 @@ def _setup_hosted_path(
                 )
                 existing_localpart = ""
                 continue
+        elif status == "reserved":
+            print_info(
+                f"{localpart}^{domain} is reserved. If you reserved it, "
+                "continue with the same email to finish setup."
+            )
         elif status == "taken":
             # Two reasons a localpart is taken: (1) someone else owns it,
             # or (2) the user owns it — common after a claim whose response
