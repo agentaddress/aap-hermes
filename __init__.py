@@ -182,10 +182,12 @@ def _check_localpart_availability(relay_url: str, localpart: str) -> dict:
         return {"status": "error", "base_localpart": None, "base_claimed": None}
     if body.get("available"):
         status = "available"
-    elif body.get("system_reserved"):
+    elif body["system_reserved"]:
         # Built-in reserved name — unavailable AND unclaimable. Distinct from
         # "taken" so the wizard doesn't offer the email-recovery flow, which
         # can never succeed (rotate-key/claim return 403 ReservedLocalpart).
+        # Required field: the relay always sends it, so read it directly
+        # rather than tolerating an older relay that omits it.
         status = "system_reserved"
     elif body.get("reserved"):
         status = "reserved"
@@ -196,7 +198,7 @@ def _check_localpart_availability(relay_url: str, localpart: str) -> dict:
         "base_localpart": body.get("base_localpart"),
         "base_claimed": body.get("base_claimed"),
         "reserved": body.get("reserved"),
-        "system_reserved": body.get("system_reserved"),
+        "system_reserved": body["system_reserved"],
     }
 
 

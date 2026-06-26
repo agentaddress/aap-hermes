@@ -85,7 +85,13 @@ def test_check_localpart_availability_flags_system_reserved():
         )
         result = _check_localpart_availability("https://relay.test", "support")
 
-    assert result["status"] == "system_reserved"
+    assert result == {
+        "status": "system_reserved",
+        "base_localpart": "support",
+        "base_claimed": True,
+        "reserved": False,
+        "system_reserved": True,
+    }
 
 
 def test_happy_path_returns_true_and_shows_token():
