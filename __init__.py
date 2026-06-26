@@ -146,15 +146,18 @@ def _check_localpart_availability(relay_url: str, localpart: str) -> dict:
     """Hit GET /aap/addresses/check on the relay.
 
     Returns a dict with shape:
-        {"status": "available" | "reserved" | "taken" | "malformed" | "error",
+        {"status": "available" | "reserved" | "system_reserved" | "taken"
+                   | "malformed" | "error",
          "base_localpart": str | None,
          "base_claimed": bool | None}
 
     Statuses:
-      - "available"  — name is free
-      - "reserved"   — name is held by a web reservation; proceed to claim
-                        with the reserving email
-      - "taken"      — name is already claimed or otherwise unavailable
+      - "available"      — name is free
+      - "reserved"       — name is held by a web reservation; proceed to claim
+                            with the reserving email
+      - "system_reserved" — name is on the relay's built-in reserved list;
+                            unavailable AND unclaimable (no recovery path)
+      - "taken"          — name is already claimed by someone else
       - "malformed"  — relay rejected the shape (400)
       - "error"      — network failure, unexpected status, or rate-limited;
                        caller should proceed without blocking on the check
@@ -179,6 +182,13 @@ def _check_localpart_availability(relay_url: str, localpart: str) -> dict:
         return {"status": "error", "base_localpart": None, "base_claimed": None}
     if body.get("available"):
         status = "available"
+    elif body["system_reserved"]:
+        # Built-in reserved name — unavailable AND unclaimable. Distinct from
+        # "taken" so the wizard doesn't offer the email-recovery flow, which
+        # can never succeed (rotate-key/claim return 403 ReservedLocalpart).
+        # Required field: the relay always sends it, so read it directly
+        # rather than tolerating an older relay that omits it.
+        status = "system_reserved"
     elif body.get("reserved"):
         status = "reserved"
     else:
@@ -188,6 +198,7 @@ def _check_localpart_availability(relay_url: str, localpart: str) -> dict:
         "base_localpart": body.get("base_localpart"),
         "base_claimed": body.get("base_claimed"),
         "reserved": body.get("reserved"),
+        "system_reserved": body["system_reserved"],
     }
 
 
@@ -694,6 +705,18 @@ def _setup_hosted_path(
                 )
                 existing_localpart = ""
                 continue
+        elif status == "system_reserved":
+            # Built-in reserved name (e.g. "support", "admin"). It can't be
+            # self-claimed or recovered — the relay returns 403 on claim and
+            # rotate-key — so don't offer the email-recovery flow. Loop back
+            # to the prompt for a different name.
+            print_warning(
+                f"{localpart}^{domain} is a reserved name and can't be "
+                "self-claimed. Contact support@agentaddress.org for manual "
+                "provisioning, or choose a different localpart."
+            )
+            existing_localpart = ""
+            continue
         elif status == "reserved":
             print_info(
                 f"{localpart}^{domain} is reserved. If you reserved it, "
