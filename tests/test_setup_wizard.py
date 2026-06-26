@@ -48,6 +48,7 @@ def test_check_localpart_availability_distinguishes_reserved():
                     "localpart": "alice",
                     "available": False,
                     "reserved": True,
+                    "system_reserved": False,
                     "base_localpart": "alice",
                     "base_claimed": False,
                 },
@@ -60,7 +61,31 @@ def test_check_localpart_availability_distinguishes_reserved():
         "base_localpart": "alice",
         "base_claimed": False,
         "reserved": True,
+        "system_reserved": False,
     }
+
+
+def test_check_localpart_availability_flags_system_reserved():
+    """A built-in reserved name (available:false, reserved:false,
+    system_reserved:true) gets its own status so the wizard skips the
+    email-recovery flow that rotate-key would 403."""
+    with respx.mock(base_url="https://relay.test") as mock:
+        mock.get("/aap/addresses/check").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "localpart": "support",
+                    "available": False,
+                    "reserved": False,
+                    "system_reserved": True,
+                    "base_localpart": "support",
+                    "base_claimed": True,
+                },
+            )
+        )
+        result = _check_localpart_availability("https://relay.test", "support")
+
+    assert result["status"] == "system_reserved"
 
 
 def test_happy_path_returns_true_and_shows_token():
