@@ -667,3 +667,48 @@ async def test_dispatch_auto_sends_substantive_reply(adapter_fixture, tmp_hermes
     kwargs = adapter_fixture.send.call_args.kwargs
     assert kwargs["chat_id"] == friend_addr
     assert "Saturday works" in kwargs["content"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_auto_reply_echoes_inbound_thread_id(
+    adapter_fixture, tmp_hermes_home, monkeypatch
+):
+    """A 1:1 auto-reply must echo the inbound ``thread_id`` so the peer can
+    route the reply back into the originating conversation. Regression guard
+    for the thread_id=None reply bug."""
+    from datetime import datetime, timezone
+    from aap.relationships import RelationshipRecord
+    from aap.messages import build_chat_envelope
+
+    friend_seed, friend_pub = generate_keypair()
+    friend_addr = "talker^example.com"
+    adapter_fixture.stores.relationships._add_verified(RelationshipRecord(
+        relationship_type="friend",
+        peer_address=friend_addr,
+        established_at="2026-05-26T12:00:00Z",
+        proposal_envelope_json="{}",
+        accept_envelope_json="{}",
+    ))
+
+    thread_id = "eb933f79-7160-4ebd-8c40-ac4995d899e0"
+    adapter_fixture._message_handler = AsyncMock(return_value="chicken nuggets")
+    # Exercise the REAL adapter.send so it reaches client.send_envelope.
+    adapter_fixture.client.send_envelope = AsyncMock(return_value=1)
+    monkeypatch.setattr("aap_hermes.adapter.mirror_to_home_channels", MagicMock())
+
+    fresh_iat = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    env = build_chat_envelope(
+        seed=friend_seed,
+        sender_address=friend_addr,
+        text="What's for dinner?",
+        iat=fresh_iat,
+        thread_id=thread_id,
+    )
+    adapter_fixture.peer_keys[friend_addr] = friend_pub
+
+    await adapter_fixture._dispatch({"id": 8, "body": env.to_json()})
+
+    adapter_fixture.client.send_envelope.assert_called_once()
+    kwargs = adapter_fixture.client.send_envelope.call_args.kwargs
+    assert kwargs["to"] == friend_addr
+    assert kwargs.get("thread_id") == thread_id

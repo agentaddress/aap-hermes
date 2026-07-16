@@ -197,8 +197,11 @@ async def aap_send_message_handler(
                 "canonical_agent_address": canonical,
             }
 
+    from .turn_context import reply_thread_id_for
     try:
-        env = await client.send_envelope(to=to, text=text)
+        env = await client.send_envelope(
+            to=to, text=text, thread_id=reply_thread_id_for(to),
+        )
     except AAPClientError as e:
         return {"status": "error", "detail": f"send failed: {e}"}
 

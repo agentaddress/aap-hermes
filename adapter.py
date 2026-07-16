@@ -833,10 +833,17 @@ class AAPPlatformAdapter(BasePlatformAdapter):
             "adapter.send → %s (%d chars)",
             chat_id, len(content or ""),
         )
+        # Echo the inbound thread_id so the peer can route this reply back to
+        # the originating 1:1 conversation. Scoped to the same peer / non-group
+        # session — see ``reply_thread_id_for``.
+        from .turn_context import reply_thread_id_for
+        thread_id = reply_thread_id_for(chat_id)
         try:
             client = self._new_client()
             try:
-                envelope_id = await client.send_envelope(to=chat_id, text=content)
+                envelope_id = await client.send_envelope(
+                    to=chat_id, text=content, thread_id=thread_id,
+                )
             finally:
                 await client.close()
         except AAPClientError as e:
