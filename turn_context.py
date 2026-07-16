@@ -147,3 +147,24 @@ def get_current_session_source() -> Optional[Any]:
     """Return the originating ``SessionSource`` for the current turn, or
     ``None`` if this turn was not dispatched with one set."""
     return _CURRENT_SESSION_SOURCE.get()
+
+
+def reply_thread_id_for(target_address: str) -> Optional[str]:
+    """Return the current turn's inbound ``thread_id`` when a reply to
+    ``target_address`` is the natural 1:1 reply to the peer that opened the
+    turn; otherwise ``None``.
+
+    The AAP ``thread_id`` is scoped to the sender↔recipient channel, so it is
+    only echoed when the reply goes back to the same peer whose message opened
+    this turn — never onto a message to a third party. Group sessions (chat_id
+    ``aap-group:<conv_id>``) route by ``conversation_id`` and are excluded.
+    """
+    source = _CURRENT_SESSION_SOURCE.get()
+    if source is None:
+        return None
+    chat_id = getattr(source, "chat_id", None)
+    if chat_id != target_address:
+        return None
+    if str(chat_id or "").startswith("aap-group:"):
+        return None
+    return getattr(source, "thread_id", None)

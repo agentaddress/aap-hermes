@@ -136,6 +136,94 @@ async def test_send_message_accepted_for_friend(
 
 
 @pytest.mark.asyncio
+async def test_send_message_echoes_session_thread_id(
+    tmp_hermes_home, identity, fake_client
+):
+    """Replying to the peer that opened the current AAP turn echoes that
+    turn's thread_id so the reply threads back into the conversation."""
+    from aap.relationships import RelationshipRecord, RelationshipStore
+    from aap_hermes.tools import aap_send_message_handler
+    from aap_hermes.turn_context import (
+        set_current_session_source, reset_current_session_source,
+    )
+    from _hermes_compat import SessionSource
+
+    RelationshipStore.load(tmp_hermes_home)._add_verified(RelationshipRecord(
+        relationship_type="friend",
+        peer_address="mary^example.com",
+        established_at="2026-05-26T12:00:00Z",
+        proposal_envelope_json="{}",
+        accept_envelope_json="{}",
+    ))
+
+    source = SessionSource(
+        platform="aap",
+        chat_id="mary^example.com",
+        chat_type="dm",
+        user_id="mary^example.com",
+        user_name="mary^example.com",
+        thread_id="T-echo-123",
+    )
+    token = set_current_session_source(source)
+    try:
+        result = await aap_send_message_handler(
+            fake_client, identity, MagicMock(),
+            "mary^example.com", "hello",
+        )
+    finally:
+        reset_current_session_source(token)
+
+    assert result["status"] == "sent"
+    kwargs = fake_client.send_envelope.call_args.kwargs
+    assert kwargs.get("thread_id") == "T-echo-123"
+
+
+@pytest.mark.asyncio
+async def test_send_message_omits_thread_id_for_different_peer(
+    tmp_hermes_home, identity, fake_client
+):
+    """A peer's thread_id must not leak onto a message to a different peer."""
+    from aap.relationships import RelationshipRecord, RelationshipStore
+    from aap_hermes.tools import aap_send_message_handler
+    from aap_hermes.turn_context import (
+        set_current_session_source, reset_current_session_source,
+    )
+    from _hermes_compat import SessionSource
+
+    store = RelationshipStore.load(tmp_hermes_home)
+    for addr in ("mary^example.com", "bob^example.com"):
+        store._add_verified(RelationshipRecord(
+            relationship_type="friend",
+            peer_address=addr,
+            established_at="2026-05-26T12:00:00Z",
+            proposal_envelope_json="{}",
+            accept_envelope_json="{}",
+        ))
+
+    # Session opened by mary, but we send to bob.
+    source = SessionSource(
+        platform="aap",
+        chat_id="mary^example.com",
+        chat_type="dm",
+        user_id="mary^example.com",
+        user_name="mary^example.com",
+        thread_id="T-mary",
+    )
+    token = set_current_session_source(source)
+    try:
+        result = await aap_send_message_handler(
+            fake_client, identity, MagicMock(),
+            "bob^example.com", "hello",
+        )
+    finally:
+        reset_current_session_source(token)
+
+    assert result["status"] == "sent"
+    kwargs = fake_client.send_envelope.call_args.kwargs
+    assert kwargs.get("thread_id") is None
+
+
+@pytest.mark.asyncio
 async def test_send_message_expands_hosted_address_shorthand(
     tmp_hermes_home, identity, fake_client
 ):
@@ -159,6 +247,7 @@ async def test_send_message_expands_hosted_address_shorthand(
     fake_client.send_envelope.assert_called_once_with(
         to="mary^agentaddress.org",
         text="hello",
+        thread_id=None,
     )
 
 
