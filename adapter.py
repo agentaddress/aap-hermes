@@ -1226,6 +1226,14 @@ class AAPPlatformAdapter(BasePlatformAdapter):
 
         # Authorized → mirror + dispatch with the relationship trust preamble.
         is_group = conv_id is not None
+
+        # Record the sender's inbound thread_id so a later reply produced from a
+        # turn with no AAP thread of its own (e.g. the human answering via
+        # Telegram, shipped through aap_send_message) can thread back to it.
+        # 1:1 only — groups route by conversation_id, not thread_id.
+        if not is_group and thread_id:
+            from . import peer_threads
+            peer_threads.record_inbound_thread(sender, thread_id)
         mirror_to_home_channels(
             sender=sender,
             recipient=None,

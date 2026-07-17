@@ -197,10 +197,17 @@ async def aap_send_message_handler(
                 "canonical_agent_address": canonical,
             }
 
+    # Thread the reply so the peer can route it back to the originating
+    # conversation. Prefer the live in-session thread (natural AAP auto-reply);
+    # fall back to the peer's most recent recorded inbound thread for replies
+    # produced from a turn with no AAP thread of its own (e.g. the human
+    # answers a mirrored AAP message from Telegram).
     from .turn_context import reply_thread_id_for
+    from . import peer_threads
+    thread_id = reply_thread_id_for(to) or peer_threads.last_inbound_thread(to)
     try:
         env = await client.send_envelope(
-            to=to, text=text, thread_id=reply_thread_id_for(to),
+            to=to, text=text, thread_id=thread_id,
         )
     except AAPClientError as e:
         return {"status": "error", "detail": f"send failed: {e}"}

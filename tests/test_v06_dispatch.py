@@ -712,3 +712,43 @@ async def test_dispatch_auto_reply_echoes_inbound_thread_id(
     kwargs = adapter_fixture.client.send_envelope.call_args.kwargs
     assert kwargs["to"] == friend_addr
     assert kwargs.get("thread_id") == thread_id
+
+
+@pytest.mark.asyncio
+async def test_dispatch_records_inbound_thread_for_peer(
+    adapter_fixture, tmp_hermes_home, monkeypatch
+):
+    """An authorized 1:1 inbound records the sender's thread_id so a later
+    cross-platform reply (e.g. via Telegram) can thread back to it."""
+    from datetime import datetime, timezone
+    from aap.relationships import RelationshipRecord
+    from aap.messages import build_chat_envelope
+    from aap_hermes import peer_threads
+
+    friend_seed, friend_pub = generate_keypair()
+    friend_addr = "talker^example.com"
+    adapter_fixture.stores.relationships._add_verified(RelationshipRecord(
+        relationship_type="friend",
+        peer_address=friend_addr,
+        established_at="2026-05-26T12:00:00Z",
+        proposal_envelope_json="{}",
+        accept_envelope_json="{}",
+    ))
+
+    thread_id = "1f0e0a6c-6d0f-4a2b-9c3d-aa11bb22cc33"
+    adapter_fixture._message_handler = AsyncMock(return_value="[NO_REPLY]")
+    monkeypatch.setattr("aap_hermes.adapter.mirror_to_home_channels", MagicMock())
+
+    fresh_iat = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    env = build_chat_envelope(
+        seed=friend_seed,
+        sender_address=friend_addr,
+        text="What's for dinner?",
+        iat=fresh_iat,
+        thread_id=thread_id,
+    )
+    adapter_fixture.peer_keys[friend_addr] = friend_pub
+
+    await adapter_fixture._dispatch({"id": 9, "body": env.to_json()})
+
+    assert peer_threads.last_inbound_thread(friend_addr) == thread_id
